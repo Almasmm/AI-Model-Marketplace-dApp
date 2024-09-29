@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AI Model Marketplace</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <h1>AI Model Marketplace</h1>
+
+    <section id="account">
+      <p>Connected Account: <span id="accountAddress">Not connected</span></p>
+    </section>
+
+    <section id="listModel">
+      <h2>List a New AI Model</h2>
+      <form id="listModelForm">
+        <input type="text" id="modelName" placeholder="Model Name" required />
+        <input
+          type="text"
+          id="modelDescription"
+          placeholder="Model Description"
+          required
+        />
+        <input
+          type="number"
+          id="modelPrice"
+          placeholder="Price in ETH"
+          step="0.01"
+          required
+        />
+        <button type="submit">List Model</button>
+      </form>
+    </section>
+
+    <section id="models">
+      <h2>Available AI Models</h2>
+      <div id="modelsList">
+        <!-- Models will be displayed here -->
+      </div>
+    </section>
+
+    <!-- Include Web3.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
