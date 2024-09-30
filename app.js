@@ -1,5 +1,5 @@
 // Replace with your deployed contract address
-const contractAddress = "0x421ed83031559cD5387cC3F7074C83cBcF7e3D52";
+const contractAddress = "0x62270A4cd96cF6aDdB9385fDdFc366C37F01d715";
 
 // Replace with your contract's ABI
 const contractABI = [
@@ -319,135 +319,120 @@ const contractABI = [
   },
 ];
 
-// Initialize Web3
-if (typeof window.ethereum !== "undefined") {
-  window.web3 = new Web3(window.ethereum);
-  ethereum
-    .request({ method: "eth_requestAccounts" })
-    .then((accounts) => {
-      window.account = accounts[0];
-      document.getElementById("accountAddress").innerText = window.account;
-      initContract();
-    })
-    .catch((error) => {
-      console.error("User denied account access", error);
-    });
-} else {
-  alert("Please install MetaMask to use this dApp!");
-}
-
+let web3;
 let contract;
 
-function initContract() {
-  contract = new web3.eth.Contract(contractABI, contractAddress);
-  loadModels();
-}
+window.addEventListener('load', async () => {
+  if (window.ethereum) {
+    web3 = new Web3(window.ethereum);
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const accounts = await web3.eth.getAccounts();
+    document.getElementById('accountAddress').innerText = accounts[0];
+    contract = new web3.eth.Contract(contractABI, contractAddress);
+    loadModels();
+  } else {
+    alert('Please install MetaMask!');
+  }
+});
 
-// List Model Form Submission
-document
-  .getElementById("listModelForm")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const name = document.getElementById("modelName").value;
-    const description = document.getElementById("modelDescription").value;
-    const priceEth = document.getElementById("modelPrice").value;
-    const priceWei = web3.utils.toWei(priceEth, "ether"); // "100000000000000000"
-
-    try {
-      await contract.methods
-        .listModel(name, description, priceWei)
-        .send({ from: window.account, gas: 300000 });
-      alert("Model listed successfully!");
+document.getElementById('listModelForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('modelName').value;
+  const description = document.getElementById('modelDescription').value;
+  const price = web3.utils.toWei(document.getElementById('modelPrice').value, 'ether');
+  const accounts = await web3.eth.getAccounts();
+  contract.methods.listModel(name, description, price).send({ from: accounts[0], gas: 3000000 })
+    .on('transactionHash', (hash) => {
+      console.log('Transaction sent:', hash);
+    })
+    .on('receipt', (receipt) => {
+      console.log('Transaction confirmed:', receipt);
+      alert('Model listed successfully!');
       loadModels();
-    } catch (error) {
+    })
+    .on('error', (error) => {
       console.error(error);
-      alert("Error listing model");
-    }
-  });
+      alert('Error listing model');
+    });
+});
 
-// Load Models
 async function loadModels() {
   const modelsCount = await contract.methods.modelCount().call();
-  const modelsList = document.getElementById("modelsList");
-  modelsList.innerHTML = "";
-
+  const modelsList = document.getElementById('modelsList');
+  modelsList.innerHTML = '';
   for (let i = 1; i <= modelsCount; i++) {
     const model = await contract.methods.getModelDetails(i).call();
-    const modelDiv = document.createElement("div");
-    modelDiv.className = "model";
+    const modelDiv = document.createElement('div');
+    modelDiv.className = 'model';
     modelDiv.innerHTML = `
-            <h3>${model.name}</h3>
-            <p><strong>Description:</strong> ${model.description}</p>
-            <p><strong>Price:</strong> ${web3.utils.fromWei(
-              model.price,
-              "ether"
-            )} ETH</p>
-            <p><strong>Creator:</strong> ${model.creator}</p>
-            <p><strong>Average Rating:</strong> ${model.averageRating}</p>
-            <button onclick="purchaseModel(${model.id})">Purchase</button>
-            <button onclick="rateModel(${model.id})">Rate</button>
-            <button onclick="viewDetails(${model.id})">View Details</button>
-        `;
+      <h3>${model.name}</h3>
+      <p><strong>Description:</strong> ${model.description}</p>
+      <p><strong>Price:</strong> ${web3.utils.fromWei(model.price, 'ether')} ETH</p>
+      <p><strong>Creator:</strong> ${model.creator}</p>
+      <p><strong>Average Rating:</strong> ${model.averageRating}</p>
+      <button onclick="purchaseModel(${model.id})">Purchase</button>
+      <button onclick="rateModel(${model.id})">Rate</button>
+      <button onclick="viewDetails(${model.id})">View Details</button>
+    `;
     modelsList.appendChild(modelDiv);
   }
 }
-
-// Purchase Model
 async function purchaseModel(modelId) {
-  try {
-    const model = await contract.methods.getModelDetails(modelId).call();
-    const price = model.price;
-
-    await contract.methods
-      .purchaseModel(modelId)
-      .send({ from: window.account, value: price, gas: 300000 });
-    alert("Model purchased successfully!");
-  } catch (error) {
-    console.error(error);
-    alert("Error purchasing model");
-  }
+  const accounts = await web3.eth.getAccounts();
+  const model = await contract.methods.getModelDetails(modelId).call();
+  contract.methods.purchaseModel(modelId).send({ from: accounts[0], value: model.price, gas: 3000000 })
+    .on('transactionHash', (hash) => {
+      console.log('Transaction sent:', hash);
+    })
+    .on('receipt', (receipt) => {
+      console.log('Transaction confirmed:', receipt);
+      alert('Model purchased successfully!');
+    })
+    .on('error', (error) => {
+      console.error(error);
+      alert('Error purchasing model');
+    });
 }
-
-// Rate Model
 async function rateModel(modelId) {
-  const rating = prompt("Enter rating (1-5):");
+  const rating = prompt('Enter rating (1-5):');
   if (rating < 1 || rating > 5) {
-    alert("Invalid rating");
+    alert('Invalid rating');
     return;
   }
 
-  try {
-    await contract.methods
-      .rateModel(modelId, rating)
-      .send({ from: window.account, gas: 300000 });
-    alert("Model rated successfully!");
-  } catch (error) {
-    console.error(error);
-    alert("Error rating model");
-  }
+  const accounts = await web3.eth.getAccounts();
+  contract.methods.rateModel(modelId, rating).send({ from: accounts[0], gas: 3000000 })
+    .on('transactionHash', (hash) => {
+      console.log('Transaction sent:', hash);
+    })
+    .on('receipt', (receipt) => {
+      console.log('Transaction confirmed:', receipt);
+      alert('Model rated successfully!');
+    })
+    .on('error', (error) => {
+      console.error(error);
+      alert('Error rating model');
+    });
 }
-
-// View Model Details
 async function viewDetails(modelId) {
   const model = await contract.methods.getModelDetails(modelId).call();
   alert(`Model Details:
     ID: ${model.id}
     Name: ${model.name}
     Description: ${model.description}
-    Price: ${web3.utils.fromWei(model.price, "ether")} ETH
+    Price: ${web3.utils.fromWei(model.price, 'ether')} ETH
     Creator: ${model.creator}
     Average Rating: ${model.averageRating}`);
 }
 
-// Withdraw Funds (for contract owner)
-async function withdrawFunds() {
+document.getElementById('withdrawButton').addEventListener('click', async () => {
+  const accounts = await web3.eth.getAccounts();
+
   try {
-    await contract.methods
-      .withdrawFunds()
-      .send({ from: window.account, gas: 300000 });
-    alert("Funds withdrawn successfully!");
+    await contract.methods.withdrawFunds().send({ from: accounts[0]});
+    alert('Funds withdrawn successfully!');
   } catch (error) {
-    console.error(error);
-    alert("Error withdrawing funds");
+    console.error('Error withdrawing funds:', error);
+    alert('Error withdrawing funds');
   }
-}
+});
